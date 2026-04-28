@@ -1,0 +1,697 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  ChevronRight, 
+  ShieldCheck, 
+  Activity, 
+  Database, 
+  Truck, 
+  UserCheck, 
+  Stethoscope, 
+  TrendingUp, 
+  Menu, 
+  X,
+  FileText,
+  AlertTriangle,
+  Zap,
+  Microscope,
+  Info,
+  Sparkles,
+  Send,
+  Loader2,
+  RefreshCw
+} from 'lucide-react';
+
+const COLORS = {
+  darkBlue: '#0F1C2C',
+  lightTaupe: '#F7FAF2',
+  darkGreen: '#1A5745',
+  primaryGreen: '#3BE0AD',
+  softGreen: '#F7FAF2',
+  textGreen: '#19A078',
+  accentYellow: '#E8FC83',
+  accentBlue: '#50EAF2',
+  darkGray: '#A8A8A8',
+  lightGray: '#EBEAE8',
+  white: '#FFFFFF'
+};
+
+// --- GEMINI API INTEGRATION ---
+const apiKey = "";
+
+async function callGemini(prompt, systemInstruction = "") {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+  
+  let delay = 1000;
+  for (let i = 0; i < 5; i++) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined
+        })
+      });
+
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const result = await response.json();
+      return result.candidates?.[0]?.content?.parts?.[0]?.text;
+    } catch (error) {
+      if (i === 4) throw error;
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 2;
+    }
+  }
+}
+
+const App = () => {
+  const [activeSection, setActiveSection] = useState('introduction');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  const sections = [
+    { id: 'introduction', title: 'Introduction', icon: <FileText size={18} /> },
+    { id: 'chapter-1', title: '1. HLS Today', icon: <Activity size={18} /> },
+    { id: 'chapter-2', title: '2. 6 Core Risk Areas', icon: <AlertTriangle size={18} /> },
+    { id: 'chapter-3', title: '3. New Risks', icon: <Zap size={18} /> },
+    { id: 'chapter-4', title: '4. Scaling Risk', icon: <TrendingUp size={18} /> },
+    { id: 'chapter-5', title: '5. Insurance Missteps', icon: <ShieldCheck size={18} /> },
+    { id: 'conclusion', title: 'Conclusion', icon: <UserCheck size={18} /> },
+  ];
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
+      const currentProgress = (window.pageYOffset / (totalScroll || 1)) * 100;
+      setScrollProgress(currentProgress);
+
+      const sectionElements = sections.map(s => document.getElementById(s.id));
+      const current = sectionElements.find(el => {
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        return rect.top <= 150 && rect.bottom >= 150;
+      });
+      if (current) setActiveSection(current.id);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [sections]);
+
+  const scrollToSection = (id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      const offset = 80;
+      const bodyRect = document.body.getBoundingClientRect().top;
+      const elementRect = element.getBoundingClientRect().top;
+      const elementPosition = elementRect - bodyRect;
+      const offsetPosition = elementPosition - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+      setIsSidebarOpen(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen font-sans selection:bg-accentYellow selection:text-darkBlue" style={{ backgroundColor: COLORS.lightTaupe, color: COLORS.darkBlue }}>
+      {/* Progress Bar */}
+      <div className="fixed top-0 left-0 right-0 h-1 z-50 bg-lightGray">
+        <div 
+          className="h-full transition-all duration-150" 
+          style={{ width: `${scrollProgress}%`, backgroundColor: COLORS.primaryGreen }}
+        />
+      </div>
+
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 w-full z-40 px-4 py-3 flex items-center justify-between border-b bg-white border-lightGray">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded flex items-center justify-center text-white font-bold" style={{ backgroundColor: COLORS.darkBlue }}>V</div>
+          <span className="font-bold tracking-tight text-sm uppercase">HLS Blueprint</span>
+        </div>
+        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2">
+          {isSidebarOpen ? <X /> : <Menu />}
+        </button>
+      </div>
+
+      {/* Sidebar */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-40 w-72 transform transition-transform duration-300 ease-in-out lg:translate-x-0 bg-white border-r border-lightGray
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <div className="p-8 h-full flex flex-col">
+          <div className="flex items-center gap-3 mb-12">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xl" style={{ backgroundColor: COLORS.darkBlue }}>V</div>
+            <div>
+              <h1 className="text-xs font-bold uppercase tracking-widest text-darkGray">Whitepaper</h1>
+              <p className="font-bold text-sm">Vouch Insurance</p>
+            </div>
+          </div>
+
+          <nav className="flex-1 space-y-1 overflow-y-auto">
+            {sections.map((section) => (
+              <button
+                key={section.id}
+                onClick={() => scrollToSection(section.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  activeSection === section.id 
+                    ? 'bg-darkBlue text-white shadow-lg' 
+                    : 'text-darkGray hover:bg-lightGray hover:text-darkBlue'
+                }`}
+              >
+                {section.icon}
+                {section.title}
+              </button>
+            ))}
+          </nav>
+
+          <div className="mt-auto pt-8 border-t border-lightGray">
+            <a 
+              href="https://vouch.us/healthcare-life-sciences" 
+              className="block w-full text-center py-3 rounded-lg font-bold text-sm transition-transform hover:scale-105"
+              style={{ backgroundColor: COLORS.primaryGreen, color: COLORS.darkBlue }}
+            >
+              Talk to an Advisor
+            </a>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 lg:ml-72 transition-all">
+        <div className="max-w-4xl mx-auto px-6 py-20 lg:px-12 lg:py-24">
+          
+          {/* Introduction */}
+          <section id="introduction" className="mb-24">
+            <div className="inline-block px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest mb-6" style={{ backgroundColor: COLORS.accentYellow, color: COLORS.darkGreen }}>
+              Strategy Guide
+            </div>
+            <h1 className="text-4xl lg:text-6xl font-extrabold leading-tight mb-8 tracking-tight" style={{ color: COLORS.darkBlue }}>
+              The Healthcare & Life Sciences <span style={{ color: COLORS.textGreen }}>Blueprint</span>
+            </h1>
+            <p className="text-xl lg:text-2xl text-darkGray font-medium mb-12 leading-relaxed">
+              Managing risk where science, tech, and regulation collide.
+            </p>
+
+            <div className="prose prose-lg max-w-none text-darkBlue space-y-6">
+              <p>If you're building in Healthcare and Life Sciences, you're used to navigating uncertainty. Whether you're bringing a new therapy to market, scaling a virtual care platform, or deploying AI-powered diagnostics, you're operating at the intersection of science, technology, and regulation. The rewards are massive, but so are the risks.</p>
+              <p>From regulatory hurdles to clinical trial failures to data breaches exposing millions of patient records, a single misstep can derail years of work and potentially cost millions in investment. At the same time, breakthroughs save lives and reshape entire industries.</p>
+              <p>This paper is a practical guide for leaders navigating the high-stakes world of Healthcare and Life Sciences. We’ll break down:</p>
+              <ul className="list-disc pl-6 space-y-2">
+                <li><strong>The six core risk areas</strong> that consistently challenge growing companies, including clinical trial liability, cybersecurity, product and professional liability, supply chain vulnerability, and regulatory missteps.</li>
+                <li><strong>Emerging exposures</strong> that are quickly becoming board-level concerns, including risks tied to generative AI, Environmental, Social, and Governance (ESG), Mergers and Acquisitions (M&A), and Intellectual Property (IP) readiness.</li>
+                <li><strong>How risk evolves as you grow</strong> and why exposure at early stages looks different than at growth companies whether you're navigating Food and Drug Administration (FDA) pathways or landing your first enterprise health system contract.</li>
+                <li><strong>How to build an insurance strategy that scales with you</strong> so you're not underinsured when it matters, or overpaying when you don't need to.</li>
+              </ul>
+              <p className="font-bold text-textGreen">This paper will help you think about risk management as a tool to move faster, earn trust, and scale smarter, and not just a compliance exercise.</p>
+            </div>
+          </section>
+
+          {/* Chapter 1 */}
+          <section id="chapter-1" className="mb-24 scroll-mt-24">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-textGreen font-bold font-mono">01</span>
+              <div className="h-px flex-1 bg-lightGray"></div>
+            </div>
+            <h2 className="text-3xl font-bold mb-8">Healthcare and Life Sciences Today</h2>
+            
+            <div className="prose prose-lg max-w-none text-darkBlue space-y-6 mb-12">
+              <p>Healthcare and Life Sciences is moving faster than ever. The COVID-19 pandemic didn't just accelerate telehealth, it kicked off a wave of innovation across BioTech, HealthTech, digital therapeutics, and diagnostics. Today, companies are advancing gene therapies, scaling virtual care, building AI-powered clinical decision tools, and applying machine learning to speed up everything from drug discovery to patient triage.</p>
+              <p>Cloud infrastructure, machine learning, and real-time data are reshaping how research happens, how trials are run, and how treatments reach patients. Digital tools are helping to “derisk drug discovery” and compress development timelines that once stretched for years.</p>
+              <p>On the HealthTech side, the FDA has authorized over 1,000 AI-enabled medical devices for marketing in the U.S., a figure that continues to climb. The line between “health company” and “tech company” is increasingly difficult to draw.</p>
+              
+              <h3 className="text-xl font-bold mt-12 mb-4">Speed Comes with Tradeoffs</h3>
+              <p>Your company faces some of the highest-stakes risks in any industry. You in one of the most tightly regulated environments, handle extremely sensitive patient and genomic data, and often deal with materials that are irreplaceable or highly perishable. And you’re doing all of it under pressure from investors, partners, and regulators who expect speed with zero margin for error.</p>
+              <blockquote className="border-l-4 border-primaryGreen pl-6 py-2 italic text-lg text-darkBlue font-medium my-8">
+                “From AI-enabled R&D to connected medical devices and decentralized trials, each advancement introduces new risks that demand vigilant oversight and coordination across compliance, IT, and operational functions.” — Crowe 2025 Report
+              </blockquote>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+              <div className="bg-darkBlue p-6 rounded-xl text-white">
+                <div className="text-primaryGreen mb-2"><Activity /></div>
+                <div className="text-3xl font-bold mb-1">1,000+</div>
+                <div className="text-xs uppercase tracking-wider opacity-70">AI-Enabled Medical Devices authorized by FDA</div>
+              </div>
+              <div className="bg-white p-6 rounded-xl border border-lightGray">
+                <div className="text-textGreen mb-2"><Microscope /></div>
+                <div className="text-3xl font-bold mb-1">90%</div>
+                <div className="text-xs uppercase tracking-wider text-darkGray">Drug candidates that fail in clinical trials</div>
+              </div>
+              <div className="bg-white p-6 rounded-xl border border-lightGray">
+                <div className="text-accentBlue mb-2"><Database /></div>
+                <div className="text-3xl font-bold mb-1">289M</div>
+                <div className="text-xs uppercase tracking-wider text-darkGray">US Patient Records exposed in 2025</div>
+              </div>
+            </div>
+          </section>
+
+          {/* Chapter 2 */}
+          <section id="chapter-2" className="mb-24 scroll-mt-24">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-textGreen font-bold font-mono">02</span>
+              <div className="h-px flex-1 bg-lightGray"></div>
+            </div>
+            <h2 className="text-3xl font-bold mb-6">6 Risk Areas That Can Derail Your Growth</h2>
+            
+            <div className="space-y-16">
+              {/* Risk 1 */}
+              <div className="scroll-mt-20">
+                <h3 className="text-2xl font-bold mb-4 flex items-center gap-3">
+                  <span className="p-2 bg-accentBlue/20 rounded-lg text-accentBlue"><FileText size={20}/></span>
+                  1. Regulatory Risk
+                </h3>
+                <div className="prose prose-lg max-w-none text-darkBlue space-y-4">
+                  <p>The regulatory landscape is constantly evolving. From FDA approvals and HIPAA requirements to global data laws and new AI rules, compliance demands can shift mid-sprint. Recent regulatory activity is forcing companies across the sector to rethink how they price, run trials, and commercialize.</p>
+                  <p>For HealthTech companies, the FDA's evolving framework for Software as a Medical Device (SaMD) means that a digital health tool once considered outside FDA jurisdiction could suddenly fall under regulatory scrutiny. State privacy laws like California’s CCPA and CPRA layer additional compliance requirements on top of HIPAA.</p>
+                </div>
+              </div>
+
+              {/* Risk 2 */}
+              <div className="scroll-mt-20">
+                <h3 className="text-2xl font-bold mb-4 flex items-center gap-3">
+                  <span className="p-2 bg-textGreen/20 rounded-lg text-textGreen"><Database size={20}/></span>
+                  2. Cyber Risk
+                </h3>
+                <div className="prose prose-lg max-w-none text-darkBlue space-y-4">
+                  <p>Healthcare and Life Sciences companies work with some of the most sensitive and valuable data in any industry. In 2025, healthcare data breaches hit a record high, with over 289M U.S. patient records exposed. The average healthcare breach now costs $7.42M, the highest of any industry for 12 consecutive years.</p>
+                </div>
+              </div>
+
+              {/* Risk 3 */}
+              <div className="scroll-mt-20">
+                <h3 className="text-2xl font-bold mb-4 flex items-center gap-3">
+                  <span className="p-2 bg-primaryGreen/20 rounded-lg text-primaryGreen"><Activity size={20}/></span>
+                  3. Clinical Trial Risk
+                </h3>
+                <div className="prose prose-lg max-w-none text-darkBlue space-y-4">
+                  <p>roughly 90% of drug candidates that enter clinical trials never reach market. Even for promising therapies, trial execution can go sideways due to protocol errors, patient safety events, or recruitment problems.</p>
+                  <p>Biological samples and experimental therapies may not be easily replicated or restored. Something as mundane as a freezer failure or power outage could wipe out months or years of work.</p>
+                </div>
+              </div>
+
+              {/* Risk 4 */}
+              <div className="scroll-mt-20">
+                <h3 className="text-2xl font-bold mb-4 flex items-center gap-3">
+                  <span className="p-2 bg-accentYellow/20 rounded-lg text-darkGreen"><Truck size={20}/></span>
+                  4. Supply Chain Risk
+                </h3>
+                <div className="prose prose-lg max-w-none text-darkBlue space-y-4">
+                  <p>Supply chain disruptions are now the top risk in Life Sciences. Today's supply chains are global and complex, including CROs, CMOs, and cold-chain distributors. Natural catastrophes remain among the top supply chain risks, yet fewer than 10% of companies have full visibility into supply chain risk.</p>
+                </div>
+              </div>
+
+              {/* Risk 5 */}
+              <div className="scroll-mt-20">
+                <h3 className="text-2xl font-bold mb-4 flex items-center gap-3">
+                  <span className="p-2 bg-textGreen/20 rounded-lg text-textGreen"><Stethoscope size={20}/></span>
+                  5. Product & Professional Liability Risk
+                </h3>
+                <div className="prose prose-lg max-w-none text-darkBlue space-y-4">
+                  <p>Bringing any product to market opens you up to liability. When an AI diagnostic tool gives a flawed recommendation, or a remote monitoring device delivers incorrect readings, who is liable?</p>
+                  <p>This creates a hybrid challenge: part professional liability (like malpractice), part product liability. Fewer than 20% of cyber or tech policies include a “trigger” for bodily injury—a dangerous gap for digital health companies.</p>
+                </div>
+              </div>
+
+              {/* Risk 6 */}
+              <div className="scroll-mt-20">
+                <h3 className="text-2xl font-bold mb-4 flex items-center gap-3">
+                  <span className="p-2 bg-darkBlue text-white rounded-lg"><UserCheck size={20}/></span>
+                  6. Executive & Board Risk
+                </h3>
+                <div className="prose prose-lg max-w-none text-darkBlue space-y-4">
+                  <p>Leadership in Healthcare and Life Sciences carries personal risk. If a trial fails, a deal falls through, or a valuation drops, directors and officers may be held personally liable. Shareholders may sue claiming they were misled about the company's prospects.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Chapter 3 */}
+          <section id="chapter-3" className="mb-24 scroll-mt-24">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-textGreen font-bold font-mono">03</span>
+              <div className="h-px flex-1 bg-lightGray"></div>
+            </div>
+            <h2 className="text-3xl font-bold mb-8">New Risks on the Horizon</h2>
+            
+            <div className="space-y-12 prose prose-lg max-w-none text-darkBlue">
+              <div>
+                <h3 className="text-xl font-bold">Generative AI</h3>
+                <p>Nearly 60% of Life Sciences executives cited generative AI as a key trend. Training models on sensitive data can expose IP or violate HIPAA. Outputs can reflect bias, trigger safety issues, or introduce diagnostic errors. The FDA finalized guidance on change control plans for AI devices in late 2024.</p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-bold">Environmental, Social, and Governance (ESG)</h3>
+                <p>Climate change directly threatens operations and supply chains—48% of companies cite natural disasters as a top concern. society holds HLS firms to a higher standard. Clinical trial ethics and equitable access can escalate into reputational crises.</p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-bold">Mergers and Acquisitions (M&A) Readiness</h3>
+                <p>Global Life Sciences M&A investment reached $240B in 2025. Acquirers conduct thorough diligence on clinical trial data integrity, IP assignment chains, and regulatory compliance. Weak protections can scuttle a deal entirely.</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Chapter 4 */}
+          <section id="chapter-4" className="mb-24 scroll-mt-24">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-textGreen font-bold font-mono">04</span>
+              <div className="h-px flex-1 bg-lightGray"></div>
+            </div>
+            <h2 className="text-3xl font-bold mb-8">How Risk Changes as You Scale</h2>
+            <p className="text-lg mb-8">A clinical-stage BioTech and a scaling HealthTech company need entirely different risk strategies. What was irrelevant at Seed could be essential by Series B.</p>
+            
+            <RiskTabs />
+            
+            {/* GEMINI INTEGRATION: RISK PLAN GENERATOR */}
+            <div className="mt-16">
+              <RiskPlanGenerator />
+            </div>
+          </section>
+
+          {/* Chapter 5 */}
+          <section id="chapter-5" className="mb-24 scroll-mt-24">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-textGreen font-bold font-mono">05</span>
+              <div className="h-px flex-1 bg-lightGray"></div>
+            </div>
+            <h2 className="text-3xl font-bold mb-8">Insurance Missteps to Watch For</h2>
+            
+            <div className="space-y-12 prose prose-lg max-w-none text-darkBlue">
+              <div>
+                <h3 className="text-xl font-bold mb-2">Letting Coverage Go Stale</h3>
+                <p>A policy that made sense at Seed could leave you fully exposed by Series A. Adjust coverage before your exposure changes.</p>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold mb-2">Relying on Generic Policies</h3>
+                <p>Standard Tech E&O policies often exclude bodily injury—a dangerous gap for digital health companies where software errors cause physical harm.</p>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold mb-2">Underinsuring or Overinsuring</h3>
+                <p>Insurance should match your actual worst-case scenarios, scale limits as you grow, and work with carriers that let you adjust mid-term.</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Conclusion */}
+          <section id="conclusion" className="mb-24 scroll-mt-24 text-center">
+            <h2 className="text-4xl font-bold mb-8">Conclusion</h2>
+            <div className="prose prose-lg max-w-none text-darkBlue mb-16">
+              <p>Building in Healthcare and Life Sciences means operating in one of the most high-risk, high-reward environments out there. Resilience comes from combining strong operations with systems that scale.</p>
+            </div>
+
+            <div className="p-12 rounded-[40px] bg-darkBlue text-white shadow-2xl relative overflow-hidden">
+              <h3 className="text-2xl font-bold mb-4">Ready to build your blueprint?</h3>
+              <p className="text-lightGray mb-8">Speak with an advisor who specializes in Healthcare and Life Sciences.</p>
+              <a 
+                href="https://vouch.us/healthcare-life-sciences" 
+                className="inline-block px-10 py-4 rounded-xl font-bold text-darkBlue transition-all hover:scale-105"
+                style={{ backgroundColor: COLORS.primaryGreen }}
+              >
+                Consult an Advisor
+              </a>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      {/* GEMINI INTEGRATION: FLOATING EXPERT CHAT */}
+      <ExpertChat isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
+    </div>
+  );
+};
+
+// --- SUB-COMPONENT: RISK PLAN GENERATOR (✨ GEMINI POWERED) ---
+const RiskPlanGenerator = () => {
+  const [formData, setFormData] = useState({ companyType: 'BioTech', stage: 'Seed', size: '1-10' });
+  const [plan, setPlan] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const generatePlan = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const systemPrompt = `You are a specialist HLS risk consultant. Based on the "Healthcare and Life Sciences Blueprint" whitepaper, generate a concise, 3-step action plan for the user's specific company type and stage. Focus on insurance and operational risks mentioned in the text. Format as: "1. [Step title]: [Short description] ... 3. [Step title]: [Short description]". Keep it under 150 words. Be professional and encouraging.`;
+      const prompt = `My company is a ${formData.companyType} at the ${formData.stage} stage with ${formData.size} employees. What are my top 3 risk management priorities?`;
+      
+      const result = await callGemini(prompt, systemPrompt);
+      setPlan(result);
+    } catch (err) {
+      setError("Unable to generate plan. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white p-8 rounded-[32px] border border-lightGray shadow-xl relative overflow-hidden">
+      <div className="absolute top-0 right-0 p-4 opacity-10">
+        <Sparkles size={120} />
+      </div>
+      
+      <div className="relative z-10">
+        <div className="flex items-center gap-2 mb-6">
+          <Sparkles className="text-textGreen" size={24} />
+          <h3 className="text-2xl font-bold">✨ Personalized Risk Action Plan</h3>
+        </div>
+        
+        <p className="text-darkGray mb-8">Generate a custom risk management checklist based on your company's profile.</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-darkGray mb-2">Company Type</label>
+            <select 
+              value={formData.companyType}
+              onChange={(e) => setFormData({...formData, companyType: e.target.value})}
+              className="w-full p-3 rounded-xl border border-lightGray bg-lightTaupe text-sm font-medium focus:ring-2 focus:ring-primaryGreen outline-none transition-all"
+            >
+              <option>BioTech / Pharma</option>
+              <option>HealthTech / SaaS</option>
+              <option>Digital Health / Telemedicine</option>
+              <option>Medical Device</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-darkGray mb-2">Stage</label>
+            <select 
+              value={formData.stage}
+              onChange={(e) => setFormData({...formData, stage: e.target.value})}
+              className="w-full p-3 rounded-xl border border-lightGray bg-lightTaupe text-sm font-medium focus:ring-2 focus:ring-primaryGreen outline-none transition-all"
+            >
+              <option>Pre-Seed / Seed</option>
+              <option>Series A / B</option>
+              <option>Growth / Series C+</option>
+              <option>Commercialized</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-darkGray mb-2">Headcount</label>
+            <select 
+              value={formData.size}
+              onChange={(e) => setFormData({...formData, size: e.target.value})}
+              className="w-full p-3 rounded-xl border border-lightGray bg-lightTaupe text-sm font-medium focus:ring-2 focus:ring-primaryGreen outline-none transition-all"
+            >
+              <option>1-10</option>
+              <option>11-50</option>
+              <option>51-200</option>
+              <option>200+</option>
+            </select>
+          </div>
+        </div>
+
+        <button 
+          onClick={generatePlan}
+          disabled={loading}
+          className="w-full py-4 rounded-xl font-bold text-darkBlue flex items-center justify-center gap-2 transition-all hover:scale-[1.02] disabled:opacity-50"
+          style={{ backgroundColor: COLORS.primaryGreen }}
+        >
+          {loading ? <Loader2 className="animate-spin" /> : <Sparkles size={18} />}
+          {loading ? 'Building Strategy...' : '✨ Generate My Strategy'}
+        </button>
+
+        {error && <p className="mt-4 text-center text-xs text-red-500">{error}</p>}
+
+        {plan && (
+          <div className="mt-8 p-6 rounded-2xl bg-darkBlue text-white animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-primaryGreen mb-4">Your Custom Action Plan</h4>
+            <div className="prose prose-invert prose-sm max-w-none text-lightGray whitespace-pre-line leading-relaxed">
+              {plan}
+            </div>
+            <button 
+              onClick={() => setPlan(null)}
+              className="mt-6 text-[10px] uppercase font-bold flex items-center gap-1 hover:text-primaryGreen transition-colors"
+            >
+              <RefreshCw size={12} /> Start Over
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// --- SUB-COMPONENT: EXPERT CHAT (✨ GEMINI POWERED) ---
+const ExpertChat = ({ isOpen, setIsOpen }) => {
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState([
+    { role: 'assistant', text: 'Hi! I\'m your ✨ AI Risk Expert. Ask me anything about HLS risk, regulatory compliance, or insurance from the whitepaper.' }
+  ]);
+  const [isTyping, setIsTyping] = useState(false);
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isTyping]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isTyping) return;
+    
+    const userMsg = input;
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+    setIsTyping(true);
+
+    try {
+      const systemInstruction = `You are a helpful HLS Insurance and Risk Assistant based on the provided whitepaper text. Use only the information found in the document to answer. If the answer is not in the text, politely say you don't have that information but recommend speaking with a Vouch advisor. Keep responses professional, clear, and actionable.`;
+      const result = await callGemini(userMsg, systemInstruction);
+      setMessages(prev => [...prev, { role: 'assistant', text: result }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { role: 'assistant', text: "I'm having trouble connecting to my knowledge base. Please try asking again in a moment." }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  return (
+    <div className="fixed bottom-6 right-6 z-[60] flex flex-col items-end">
+      {isOpen && (
+        <div className="mb-4 w-80 sm:w-96 h-[500px] bg-white rounded-[32px] border border-lightGray shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 fade-in slide-in-from-bottom-12 duration-300 origin-bottom-right">
+          <div className="bg-darkBlue p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-primaryGreen flex items-center justify-center text-darkBlue">
+                <Sparkles size={16} />
+              </div>
+              <div>
+                <h4 className="text-white text-xs font-bold leading-none">✨ AI Blueprint Expert</h4>
+                <p className="text-[10px] text-primaryGreen mt-1">Powered by Gemini</p>
+              </div>
+            </div>
+            <button onClick={() => setIsOpen(false)} className="text-white/60 hover:text-white"><X size={20}/></button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {messages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] p-3 rounded-2xl text-xs leading-relaxed ${
+                  m.role === 'user' 
+                    ? 'bg-primaryGreen text-darkBlue font-medium rounded-tr-none' 
+                    : 'bg-lightTaupe border border-lightGray rounded-tl-none'
+                }`}>
+                  {m.text}
+                </div>
+              </div>
+            ))}
+            {isTyping && (
+              <div className="flex justify-start">
+                <div className="bg-lightTaupe border border-lightGray p-3 rounded-2xl rounded-tl-none flex gap-1">
+                  <div className="w-1.5 h-1.5 bg-darkGray rounded-full animate-bounce"></div>
+                  <div className="w-1.5 h-1.5 bg-darkGray rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                  <div className="w-1.5 h-1.5 bg-darkGray rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+
+          <div className="p-4 bg-lightTaupe border-t border-lightGray flex gap-2">
+            <input 
+              type="text" 
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="Ask about a specific risk..."
+              className="flex-1 bg-white p-3 rounded-xl border border-lightGray text-xs outline-none focus:ring-2 focus:ring-primaryGreen"
+            />
+            <button 
+              onClick={handleSend}
+              className="p-3 rounded-xl bg-darkBlue text-white transition-transform hover:scale-110 active:scale-95"
+            >
+              <Send size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-16 h-16 rounded-full bg-darkBlue text-white shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 group relative"
+      >
+        <div className="absolute inset-0 rounded-full bg-primaryGreen blur-lg opacity-20 group-hover:opacity-40 transition-opacity"></div>
+        {isOpen ? <X size={24} /> : <Sparkles size={24} />}
+      </button>
+    </div>
+  );
+};
+
+const RiskTabs = () => {
+  const [activeTab, setActiveTab] = useState('biotech');
+
+  const data = {
+    biotech: [
+      { stage: "Early Stage (R&D)", risks: "Loss of research materials (freezer failure); lab accidents; data theft or corruption; IP disputes", coverage: "Property (Spoilage), Cyber, Workers' Comp, IP Legal, HNOA" },
+      { stage: "Pre-Clinical / Clinical Trials", risks: "Trial injury or protocol errors; regulatory missteps; research disruption", coverage: "Clinical Trial Liability, Business Interruption, Increased Property/Cyber" },
+      { stage: "Post-Approval (FDA)", risks: "Harm caused by products in market; recalls; supply chain breakdowns; reputational fallout", coverage: "Product Liability, Product Recall, CBI, Enhanced D&O" },
+      { stage: "Growth & Scaling", risks: "Service failures; contamination; global operations; employer risk", coverage: "E&O, Product Contamination, Global Extensions, Employers' Liability" }
+    ],
+    healthtech: [
+      { stage: "MVP / Early Product", risks: "Data breach or PHI exposure; software errors; IP disputes", coverage: "Cyber (essential for PHI), General Liability, E&O, IP Legal" },
+      { stage: "Health System Pilots", risks: "HIPAA violations during integration; contract requirements; software-related bodily injury", coverage: "Cyber (Enterprise limits), Tech E&O (BI Endorsement), Med Mal, D&O" },
+      { stage: "Procurement-Driven Scale", risks: "Increased contract liability; product failures; regulatory scrutiny as SaMD/AI", coverage: "Product Liability, E&O (Expanded limits), EPLI, Business Interruption" },
+      { stage: "Global Expansion", risks: "Cross-state regulatory requirements; high-value claims; M&A diligence demands", coverage: "Global Liability, Recall Insurance, CBI, D&O with Tail" }
+    ]
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-lightGray shadow-sm overflow-hidden">
+      <div className="flex border-b border-lightGray">
+        <button 
+          onClick={() => setActiveTab('biotech')}
+          className={`flex-1 py-4 text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'biotech' ? 'bg-darkBlue text-white' : 'text-darkGray bg-white hover:bg-lightGray'}`}
+        >
+          BioTech & Therapeutics
+        </button>
+        <button 
+          onClick={() => setActiveTab('healthtech')}
+          className={`flex-1 py-4 text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'healthtech' ? 'bg-darkBlue text-white' : 'text-darkGray bg-white hover:bg-lightGray'}`}
+        >
+          HealthTech & Digital Health
+        </button>
+      </div>
+      <div className="p-4">
+        <div className="grid grid-cols-1 gap-1">
+          {data[activeTab].map((item, i) => (
+            <div key={i} className="flex flex-col md:flex-row md:items-start gap-4 p-5 rounded-lg bg-lightTaupe mb-2">
+              <div className="md:w-1/4 font-bold text-sm text-darkBlue uppercase tracking-tighter">
+                {item.stage}
+              </div>
+              <div className="md:w-1/3 text-xs text-darkBlue">
+                <span className="font-bold block text-[10px] uppercase opacity-50 mb-1 text-darkGray">Key Risks</span>
+                {item.risks}
+              </div>
+              <div className="md:w-1/3">
+                <span className="font-bold block text-[10px] uppercase opacity-50 mb-1 text-darkGray">Recommended Coverage</span>
+                <span className="text-xs font-bold text-textGreen">{item.coverage}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default App;
