@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 import time
+import json
 
 # --- BRAND CONFIGURATION ---
 COLORS = {
@@ -24,83 +25,192 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# --- CUSTOM CSS FOR SEAMLESS SCROLLING ---
+# --- ADVANCED CUSTOM CSS FOR 1:1 VISUAL PORT ---
 st.markdown(f"""
     <style>
-    /* Main Background and Text */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
+
+    html, body, [class*="css"]  {{
+        font-family: 'Inter', sans-serif;
+        scroll-behavior: smooth;
+    }}
+
     .stApp {{
         background-color: {COLORS['lightTaupe']};
         color: {COLORS['darkBlue']};
     }}
     
-    /* Sidebar Styling */
     section[data-testid="stSidebar"] {{
         background-color: {COLORS['white']};
         border-right: 1px solid {COLORS['lightGray']};
     }}
-    
-    /* Headings */
-    h1, h2, h3 {{
-        color: {COLORS['darkBlue']} !important;
-        font-weight: 800 !important;
-        margin-top: 2rem !important;
+
+    /* Editorial Typography */
+    .hero-badge {{
+        background-color: {COLORS['accentYellow']};
+        color: {COLORS['darkGreen']};
+        padding: 6px 12px;
+        border-radius: 2px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.2em;
+        display: inline-block;
+        margin-bottom: 40px;
     }}
-    
-    /* Custom Sidebar Navigation Links */
+
+    .hero-title {{
+        font-size: 72px;
+        font-weight: 800;
+        line-height: 0.9;
+        letter-spacing: -0.04em;
+        color: {COLORS['darkBlue']};
+        margin-bottom: 48px;
+    }}
+
+    .hero-subtitle {{
+        font-size: 24px;
+        font-weight: 500;
+        color: {COLORS['darkBlue']};
+        margin-bottom: 64px;
+        line-height: 1.2;
+    }}
+
+    /* 1:1 Metric Card Styling */
+    .metric-card-container {{
+        display: flex;
+        gap: 32px;
+        margin-bottom: 80px;
+        flex-wrap: wrap;
+    }}
+
+    .metric-card {{
+        flex: 1;
+        min-width: 280px;
+        background-color: {COLORS['white']};
+        padding: 40px;
+        border-radius: 16px;
+        border: 1px solid {COLORS['lightGray']};
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+        min-height: 320px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }}
+
+    .metric-icon {{
+        color: {COLORS['darkBlue']};
+        margin-bottom: 40px;
+    }}
+
+    .metric-value {{
+        font-size: 60px;
+        font-weight: 800;
+        color: {COLORS['darkBlue']};
+        margin-bottom: 16px;
+        line-height: 1;
+    }}
+
+    .metric-label {{
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        line-height: 1.3;
+        color: {COLORS['darkBlue']};
+        text-transform: uppercase;
+    }}
+
+    /* Sidebar Navigation Links */
     .nav-link {{
         display: block;
-        padding: 0.5rem 1rem;
+        padding: 12px 8px;
         color: {COLORS['darkGray']};
         text-decoration: none;
+        font-size: 14px;
         font-weight: 500;
-        border-radius: 8px;
         transition: all 0.2s;
-        margin-bottom: 4px;
+        border-radius: 8px;
     }}
     .nav-link:hover {{
         background-color: {COLORS['lightGray']};
         color: {COLORS['darkBlue']};
     }}
 
-    /* UI Components */
-    .highlight-box {{
-        padding: 2rem;
-        border-radius: 1rem;
-        background-color: {COLORS['white']};
-        border: 1px solid {COLORS['lightGray']};
-        margin-bottom: 2rem;
-    }}
-    
+    /* Custom Button */
     .vouch-button {{
         background-color: {COLORS['primaryGreen']};
         color: {COLORS['darkBlue']};
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.5rem;
-        font-weight: bold;
+        padding: 16px;
+        border-radius: 4px;
+        font-weight: 700;
         text-align: center;
         text-decoration: none;
-        display: inline-block;
-        margin-top: 1rem;
+        display: block;
+        margin-top: 32px;
+        font-size: 14px;
+        transition: transform 0.2s;
+    }}
+    .vouch-button:hover {{
+        transform: scale(1.02);
     }}
 
     .ai-card {{
-        background-color: {COLORS['darkBlue']};
-        color: {COLORS['white']};
-        padding: 2.5rem;
-        border-radius: 2rem;
-        margin-top: 3rem;
-        margin-bottom: 2rem;
+        background-color: {COLORS['white']};
+        padding: 48px;
+        border-radius: 48px;
+        border: 1px solid {COLORS['lightGray']};
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        margin-top: 64px;
     }}
 
-    /* Remove default Streamlit anchor icons for cleaner look */
-    .stMarkdown h1 a, .stMarkdown h2 a, .stMarkdown h3 a {{
-        display: none !important;
+    .ai-result {{
+        background-color: {COLORS['darkBlue']};
+        color: white;
+        padding: 32px;
+        border-radius: 24px;
+        margin-top: 32px;
     }}
+
+    /* Chapter Header */
+    .chapter-header {{
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 120px;
+        margin-bottom: 48px;
+    }}
+    .chapter-num {{
+        color: {COLORS['darkGray']};
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+    }}
+    .chapter-line {{
+        height: 1px;
+        flex: 1;
+        background-color: {COLORS['darkGray']};
+        opacity: 0.3;
+    }}
+
+    /* Blockquote */
+    .vouch-quote {{
+        border-left: 8px solid {COLORS['primaryGreen']};
+        padding-left: 32px;
+        font-style: italic;
+        font-size: 24px;
+        color: {COLORS['darkBlue']};
+        margin: 48px 0;
+        font-weight: 500;
+        line-height: 1.4;
+    }}
+
+    /* Hide default Streamlit elements for clean port */
+    #MainMenu, footer, header {{visibility: hidden;}}
+    .stMarkdown h1 a, .stMarkdown h2 a, .stMarkdown h3 a {{ display: none !important; }}
     </style>
 """, unsafe_allow_html=True)
 
 # --- GEMINI API HELPERS ---
-API_KEY = "" # Handled by environment
+API_KEY = "" # Environment provided
 
 def call_gemini(prompt, system_instruction=""):
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key={API_KEY}"
@@ -117,13 +227,13 @@ def call_gemini(prompt, system_instruction=""):
         except: pass
         time.sleep(delay)
         delay *= 2
-    return "Expert currently unavailable."
+    return "The HLS AI Expert is currently offline. Please try again in a moment."
 
-# --- SIDEBAR NAVIGATION (JUMP LINKS) ---
+# --- SIDEBAR NAVIGATION (SMOOTH SCROLL PORT) ---
 with st.sidebar:
-    st.markdown(f"<div style='background-color:{COLORS['darkBlue']}; padding:10px; border-radius:8px; text-align:center; color:white; font-weight:bold; margin-bottom:20px;'>V</div>", unsafe_allow_html=True)
-    st.title("HLS Blueprint")
-    st.markdown("---")
+    st.markdown(f"<div style='background-color:{COLORS['darkBlue']}; padding:10px; width:40px; height:40px; border-radius:4px; text-align:center; color:white; font-weight:bold; font-size:24px; margin-bottom:20px;'>V</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='margin-bottom:64px;'><div style='font-size:10px; font-weight:800; letter-spacing:0.2em; color:{COLORS['darkBlue']};'>WHITEPAPER</div><div style='font-size:12px; font-weight:500; color:{COLORS['darkBlue']};'>Vouch Insurance</div></div>", unsafe_allow_html=True)
+    
     st.markdown(f"""
         <a class="nav-link" href="#introduction">Introduction</a>
         <a class="nav-link" href="#chapter-1">1. HLS Today</a>
@@ -133,175 +243,169 @@ with st.sidebar:
         <a class="nav-link" href="#chapter-5">5. Insurance Missteps</a>
         <a class="nav-link" href="#conclusion">Conclusion</a>
     """, unsafe_allow_html=True)
-    st.markdown("---")
-    st.markdown(f'<a href="https://vouch.us/healthcare-life-sciences" class="vouch-button" style="width:100%">Consult an Advisor</a>', unsafe_allow_html=True)
+    
+    st.markdown(f'<a href="https://vouch.us/healthcare-life-sciences" class="vouch-button">Talk to an Advisor</a>', unsafe_allow_html=True)
 
-    # ✨ SIDEBAR CHAT (Expert Assistant)
+    # ✨ SIDEBAR EXPERT CHAT
     st.markdown("---")
-    st.subheader("✨ HLS AI Expert")
-    chat_input = st.text_input("Ask a question about HLS Risk...", key="chat_box")
+    st.markdown("<div style='font-size:12px; font-weight:700; color:#0F1C2C; margin-bottom:12px;'>✨ HLS AI EXPERT</div>", unsafe_allow_html=True)
+    chat_input = st.text_input("Ask about HLS risk...", key="expert_chat")
     if chat_input:
-        with st.spinner("Analyzing Knowledge Base..."):
-            response = call_gemini(chat_input, "You are an AI assistant based on the Vouch HLS Blueprint. Be concise and professional.")
+        with st.spinner("Analyzing..."):
+            response = call_gemini(chat_input, "You are an AI assistant based on the Vouch HLS Blueprint. Answer professionaly and briefly.")
             st.info(response)
 
-# --- MAIN CONTENT (ONE SEAMLESS FLOW) ---
+# --- MAIN CONTENT ---
 
 # --- Introduction ---
 st.markdown('<div id="introduction"></div>', unsafe_allow_html=True)
-st.markdown(f"<span style='background-color:{COLORS['accentYellow']}; color:{COLORS['darkGreen']}; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:bold; text-transform:uppercase;'>Strategy Guide</span>", unsafe_allow_html=True)
-st.title("The Healthcare & Life Sciences Blueprint")
-st.subheader("Managing risk where science, tech, and regulation collide.")
+st.markdown('<div class="hero-badge">STRATEGY GUIDE</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="hero-title">The Healthcare & Life Sciences <span style="color:{COLORS['primaryGreen']};">Blueprint</span></div>', unsafe_allow_html=True)
+st.markdown('<div class="hero-subtitle">Managing risk where science, tech, and regulation collide.</div>', unsafe_allow_html=True)
 
-col_intro1, col_intro2 = st.columns([2, 1])
-with col_intro1:
-    st.write("""
-    If you're building in Healthcare and Life Sciences, you're used to navigating uncertainty. Whether you're bringing a new therapy to market, scaling a virtual care platform, or deploying AI-powered diagnostics, you're operating at the intersection of science, technology, and regulation. 
-    
-    This paper is a practical guide for leaders navigating the high-stakes world of Healthcare and Life Sciences. We’ll break down the six core risk areas, emerging AI exposures, and how to build an insurance strategy that scales with you.
-    """)
-with col_intro2:
-    st.markdown(f"""
-    <div style='background-color:{COLORS['white']}; padding:20px; border-radius:15px; border:1px solid {COLORS['lightGray']};'>
-        <h4 style='margin-top:0;'>At a Glance</h4>
-        <ul style='font-size:13px; color:{COLORS['textGreen']}; margin-bottom:0;'>
-            <li>6 Core Risk Factors</li>
-            <li>Generative AI Safeguards</li>
-            <li>Scaling Milestones</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
+st.write("""
+If you're building in Healthcare and Life Sciences, you're used to navigating uncertainty. Whether you're bringing a new therapy to market, scaling a virtual care platform, or deploying AI-powered diagnostics, you're operating at the intersection of science, technology, and regulation. The rewards are massive, but so are the risks.
 
-st.markdown("---")
+From regulatory hurdles to clinical trial failures to data breaches exposing millions of patient records, a single misstep can derail years of work and potentially cost millions in investment. At the same time, breakthroughs save lives and reshape entire industries.
+
+This paper is a practical guide for leaders navigating the high-stakes world of Healthcare and Life Sciences. We’ll break down:
+""")
+
+st.markdown("""
+* **The six core risk areas** that consistently challenge growing companies.
+* **Emerging exposures** tied to generative AI, ESG, and M&A.
+* **How risk evolves as you grow** and why exposure looks different at every stage.
+* **How to build an insurance strategy that scales with you.**
+""")
 
 # --- Chapter 1 ---
 st.markdown('<div id="chapter-1"></div>', unsafe_allow_html=True)
-st.header("1. Healthcare and Life Sciences Today")
+st.markdown('<div class="chapter-header"><div class="chapter-num">CHAPTER 01</div><div class="chapter-line"></div></div>', unsafe_allow_html=True)
+st.markdown(f'<h2 style="font-size:40px; font-weight:800; color:{COLORS['darkBlue']}; margin-bottom:48px;">Healthcare and Life Sciences Today</h2>', unsafe_allow_html=True)
+
 st.write("""
-Healthcare and Life Sciences is moving faster than ever. Digital tools are helping to “derisk drug discovery” and compress development timelines that once stretched for years. The line between “health company” and “tech company” is increasingly difficult to draw.
+Healthcare and Life Sciences is moving faster than ever. Today, companies are advancing gene therapies, scaling virtual care, building AI-powered clinical decision tools, and applying machine learning to speed up everything from drug discovery to patient triage.
+
+On the HealthTech side, the FDA has authorized over 1,000 AI-enabled medical devices for marketing in the U.S., a figure that continues to climb.
 """)
 
-m1, m2, m3 = st.columns(3)
-m1.metric("AI Medical Devices", "1,000+", "FDA Authorized")
-m2.metric("Breach Costs", "$7.42M", "Industry Record")
-m3.metric("Clinical Fail Rate", "90%", "R&D Reality")
+# 1:1 METRICS CARDS PORT
+m_col1, m_col2, m_col3 = st.columns(3)
 
-st.info("“From AI-enabled R&D to connected medical devices, each advancement introduces new risks that demand vigilant oversight.” — Crowe 2025 Report")
+with m_col1:
+    st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            </div>
+            <div>
+                <div class="metric-value">1,000+</div>
+                <div class="metric-label">AI-ENABLED MEDICAL DEVICES AUTHORIZED BY FDA</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
-st.markdown("---")
+with m_col2:
+    st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 18h8M3 22h18M12 2h3.5a2.5 2.5 0 0 1 0 5H12V2zM9 2v20M12 7v7a2 2 0 0 1-2 2H9"/></svg>
+            </div>
+            <div>
+                <div class="metric-value">90%</div>
+                <div class="metric-label">DRUG CANDIDATES THAT FAIL IN CLINICAL TRIALS</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+with m_col3:
+    st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C6.477 2 2 4.239 2 7v10c0 2.761 4.477 5 10 5s10-2.239 10-5V7c0-2.761-4.477-5-10-5z"/><path d="M2 7c0 2.761 4.477 5 10 5s10-2.239 10-5"/><path d="M2 12c0 2.761 4.477 5 10 5s10-2.239 10-5"/></svg>
+            </div>
+            <div>
+                <div class="metric-value">289M</div>
+                <div class="metric-label">US PATIENT RECORDS EXPOSED IN 2025</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+st.markdown(f"""
+<div class="vouch-quote">
+“From AI-enabled R&D to connected medical devices and decentralized trials, each advancement introduces new risks that demand vigilant oversight.” — Crowe 2025 Report
+</div>
+""", unsafe_allow_html=True)
 
 # --- Chapter 2 ---
 st.markdown('<div id="chapter-2"></div>', unsafe_allow_html=True)
-st.header("2. 6 Risk Areas That Can Derail Growth")
-st.write("Cutting-edge companies operate with limited resources in high-stakes conditions where a single misstep can cost time, funding, or lives.")
+st.markdown('<div class="chapter-header"><div class="chapter-num">CHAPTER 02</div><div class="chapter-line"></div></div>', unsafe_allow_html=True)
+st.markdown(f'<h2 style="font-size:40px; font-weight:800; color:{COLORS['darkBlue']}; margin-bottom:48px;">6 Risk Areas That Can Derail Growth</h2>', unsafe_allow_html=True)
 
-c2_col1, c2_col2 = st.columns(2)
-with c2_col1:
+st.write("HLS companies on the cutting edge are building in high-stakes conditions where a single misstep can cost time, funding, or lives.")
+
+c2_1, c2_2 = st.columns(2)
+with c2_1:
     with st.expander("1. Regulatory Risk", expanded=True):
-        st.write("FDA approvals and HIPAA requirements are shifting. Software as a Medical Device (SaMD) guidance is expanding.")
+        st.write("Compliance demands shift mid-sprint. From FDA approvals to Software as a Medical Device (SaMD) guidance.")
     with st.expander("2. Cyber Risk"):
-        st.write("289M U.S. patient records exposed in 2025. Costs exceed $7.4M per incident.")
+        st.write("289M U.S. patient records exposed. Average breach cost is $7.42M—highest of any industry.")
     with st.expander("3. Clinical Trial Risk"):
-        st.write("Protocol errors or safety events can halt years of research. Loss of biological samples is a major property risk.")
+        st.write("Roughly 90% of candidates fail. Loss of biological samples is an often-underestimated property risk.")
 
-with c2_col2:
+with c2_2:
     with st.expander("4. Supply Chain Risk"):
-        st.write("The #1 ranked risk. Vulnerability to single-source contract manufacturers and extreme weather events.")
+        st.write("Ranked as the #1 risk. Single contract manufacturers (CMOs/CROs) create dangerous single points of failure.")
     with st.expander("5. Product & Professional Liability"):
-        st.write("AI diagnostic failures or software errors can cause physical harm, creating complex liability gaps.")
+        st.write("Hybrid challenges: AI diagnostic tool errors or telehealth platform failures causing physical harm.")
     with st.expander("6. Executive & Board Risk"):
-        st.write("Venture-backed directors face personal liability if trials fail or regulatory issues scuttle M&A deals.")
+        st.write("Leadership carries personal risk. Shareholders may sue directors if a Phase 3 trial fails and valuation drops.")
 
-# Data Viz
-st.markdown("#### Cost of a Data Breach by Industry (2025)")
+# Chart
+st.markdown("#### Average Data Breach Cost by Industry (2025)")
 chart_data = pd.DataFrame({
-    "Industry": ["Healthcare", "Financial", "Technology", "Retail"],
+    "Industry": ["Healthcare", "Financial Services", "Technology", "Retail"],
     "Cost ($M)": [7.42, 5.9, 4.6, 3.1]
 })
 st.bar_chart(chart_data, x="Industry", y="Cost ($M)", color=COLORS['textGreen'])
 
-st.markdown("---")
-
-# --- Chapter 3 ---
-st.markdown('<div id="chapter-3"></div>', unsafe_allow_html=True)
-st.header("3. New Risks on the Horizon")
-st.write("As you scale, new risks surface that can impact valuation, delay deals, or quietly undermine trust.")
-
-c3_col1, c3_col2, c3_col3 = st.columns(3)
-with c3_col1:
-    st.markdown(f"<div style='padding:20px; border-radius:15px; background-color:{COLORS['darkGreen']}; color:white;'><b>Generative AI</b><br><small>Training on PHI, algorithmic bias, and diagnostic errors are top-of-mind.</small></div>", unsafe_allow_html=True)
-with c3_col2:
-    st.markdown(f"<div style='padding:20px; border-radius:15px; background-color:{COLORS['accentBlue']}; color:{COLORS['darkBlue']};'><b>ESG Compliance</b><br><small>FDA Diversity requirements and climate risk in supply chains.</small></div>", unsafe_allow_html=True)
-with c3_col3:
-    st.markdown(f"<div style='padding:20px; border-radius:15px; border:1px solid {COLORS['lightGray']}; background-color:white;'><b>M&A Readiness</b><br><small>Clean IP ownership is critical for the $240B sellers market.</small></div>", unsafe_allow_html=True)
-
-st.markdown("---")
-
 # --- Chapter 4 ---
 st.markdown('<div id="chapter-4"></div>', unsafe_allow_html=True)
-st.header("4. How Risk Changes as You Scale")
-st.write("Evolution from Seed to Commercialization requires qualitatively different insurance strategies.")
+st.markdown('<div class="chapter-header"><div class="chapter-num">CHAPTER 04</div><div class="chapter-line"></div></div>', unsafe_allow_html=True)
+st.markdown(f'<h2 style="font-size:40px; font-weight:800; color:{COLORS['darkBlue']}; margin-bottom:48px;">How Risk Changes as You Scale</h2>', unsafe_allow_html=True)
 
-tab_bio, tab_health = st.tabs(["BioTech & Therapeutics", "HealthTech & Digital Health"])
-with tab_bio:
-    st.table(pd.DataFrame([
-        {"Stage": "Early R&D", "Priority": "Spoilage / IP Protection"},
-        {"Stage": "Clinical Trials", "Priority": "Participant Liability"},
-        {"Stage": "Commercial", "Priority": "Product Recall / CBI"}
-    ]))
-with tab_health:
-    st.table(pd.DataFrame([
-        {"Stage": "MVP", "Priority": "Cyber / PHI Data"},
-        {"Stage": "Enterprise Pilot", "Priority": "Tech E&O / Med Mal"},
-        {"Stage": "Growth", "Priority": "EPLI / Scaling D&O"}
-    ]))
+st.write("A clinical-stage BioTech and a scaling HealthTech company need entirely different risk strategies.")
 
 # ✨ AI TOOL: Strategy Generator
 st.markdown(f"""
-    <div class='ai-card'>
-        <h2 style='color:{COLORS['primaryGreen']} !important;'>✨ Personalized Action Plan</h2>
-        <p>Get a custom risk management checklist from Gemini based on your stage.</p>
-    </div>
+    <div class="ai-card">
+        <h2 style="color:{COLORS['darkBlue']} !important; margin-bottom: 24px;">✨ Personalized Risk Action Plan</h2>
+        <div style="font-size: 18px; opacity: 0.6; margin-bottom: 40px; color: {COLORS['darkBlue']};">Generate a custom 3-priority checklist from our HLS AI Expert.</div>
 """, unsafe_allow_html=True)
 
-ai_col1, ai_col2 = st.columns(2)
-comp_type = ai_col1.selectbox("Focus Area", ["BioTech", "HealthTech", "Devices"])
-comp_stage = ai_col2.selectbox("Company Stage", ["Seed", "Series A/B", "Growth"])
+f_col1, f_col2 = st.columns(2)
+f_type = f_col1.selectbox("Company Type", ["BioTech / Pharma", "HealthTech / SaaS", "Medical Device"])
+f_stage = f_col2.selectbox("Growth Stage", ["Pre-Seed / Seed", "Series A / B", "Commercialized"])
 
-if st.button("Generate Strategy"):
-    with st.spinner("AI is analyzing whitepaper context..."):
-        prompt = f"Company: {comp_type}, Stage: {comp_stage}. Give me 3 bullet points for my insurance strategy."
-        strategy = call_gemini(prompt, "You are an expert HLS consultant based on the Vouch Blueprint. Be concise.")
-        st.success(strategy)
+if st.button("✨ Generate My Strategy"):
+    with st.spinner("Analyzing whitepaper context..."):
+        prompt = f"Company: {f_type}, Stage: {f_stage}. Provide the top 3 risk priorities based on the whitepaper."
+        strategy = call_gemini(prompt, "You are a specialist HLS risk consultant. Provide concise, bulleted priorities.")
+        st.markdown(f'<div class="ai-result">{strategy}</div>', unsafe_allow_html=True)
 
-st.markdown("---")
-
-# --- Chapter 5 ---
-st.markdown('<div id="chapter-5"></div>', unsafe_allow_html=True)
-st.header("5. Insurance Missteps to Watch For")
-st.write("Avoid these common pitfalls that leave growing HLS companies exposed.")
-
-st.markdown(f"""
-- **Letting Coverage Go Stale:** Seed policies don't work for Series A risks.
-- **Generic Exclusions:** Standard Tech E&O often excludes physical bodily injury.
-- **Broker Misalignment:** HLS needs specialists who understand spoilage and trial liability.
-""")
-
-st.markdown("---")
+st.markdown("</div>", unsafe_allow_html=True)
 
 # --- Conclusion ---
 st.markdown('<div id="conclusion"></div>', unsafe_allow_html=True)
 st.title("Conclusion")
-st.write("""
-Building in HLS means operating in a high-risk, high-reward environment. Resilience comes from systems that scale. Managing risk doesn't mean playing it safe—it means creating the confidence to move boldly.
-""")
 
 st.markdown(f"""
-<div style='background-color:{COLORS['darkBlue']}; color:white; padding:50px; border-radius:40px; text-align:center;'>
-    <h2 style='color:{COLORS['primaryGreen']} !important;'>Built for What's Next.</h2>
-    <p>Get the coverage you need to scale with confidence.</p>
-    <a href='https://vouch.us/healthcare-life-sciences' class='vouch-button'>Consult an Advisor</a>
+<div style='background-color:{COLORS['darkBlue']}; color:white; padding:80px; border-radius:48px; text-align:center; margin-top:80px;'>
+    <h2 style='color:white !important; font-size:48px; font-weight:800; margin-bottom:24px;'>Built for What's Next.</h2>
+    <p style='font-size:20px; opacity:0.8; margin-bottom:48px;'>Managing risk creates the confidence to move boldly.</p>
+    <a href='https://vouch.us/healthcare-life-sciences' class='vouch-button' style='width:280px; margin:0 auto;'>Consult an Advisor</a>
 </div>
 """, unsafe_allow_html=True)
 
-st.caption("© 2026 Vouch Insurance. Headquartered in San Francisco.")
+st.markdown("---")
+st.caption("© 2026 Vouch Insurance. The insurance broker for ambitious leaders.")
